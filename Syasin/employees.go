@@ -6,7 +6,7 @@ import (
 )
 
 type Employee struct {
-	ID         int
+	ID         uint8
 	Name       string
 	Department string
 	Salary     float64
@@ -119,7 +119,6 @@ func main() {
 		Department: "IT",
 		Salary:     85843.25,
 	}
-
 
 	employees = addEmployee(employees, employee1)
 	employees = addEmployee(employees, employee2)

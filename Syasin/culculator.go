@@ -22,8 +22,7 @@ type Car struct {
  AirDensity        float64 // плотность воздуха, кг/м^3
 }
 
-// AverageAcceleration рассчитывает среднее ускорение
-// при разгоне от 0 до 100 км/ч.
+// AverageAcceleration рассчитывает среднее ускорение при разгоне от 0 до 100 км/ч.
 func (c Car) AverageAcceleration() float64 {
  speed := 100.0 / 3.6
  return speed / c.AccelerationTime
@@ -37,14 +36,11 @@ func (c Car) BrakingDistance() float64 {
  return math.Pow(speed, 2) / (2 * c.GripCoefficient * g)
 }
 
-// CorneringSpeed рассчитывает максимальную скорость
-// автомобиля в повороте.
+// CorneringSpeed рассчитывает максимальную скорость автомобиля в повороте.
 func (c Car) CorneringSpeed() float64 {
  g := 9.81
 
- speed := math.Sqrt(
-  c.GripCoefficient * g * c.TurnRadius,
- )
+ speed := math.Sqrt( c.GripCoefficient * g * c.TurnRadius, )
 
  return speed * 3.6
 }
@@ -58,8 +54,7 @@ func (c Car) Torque() float64 {
  return power / angularSpeed
 }
 
-// WheelSpeed рассчитывает скорость автомобиля
-// по оборотам двигателя.
+// WheelSpeed рассчитывает скорость автомобиля по оборотам двигателя.
 func (c Car) WheelSpeed() float64 {
  wheelRPM := c.EngineRPM / c.GearRatio
 
