@@ -2,120 +2,156 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
+	"math"
 )
 
-func printMenu() {
-	fmt.Println("Программа КАЛЬКУЛЯТОР НО КРУЧЕ")
-	fmt.Println("1. Решение системы линейных уравнений")
-	fmt.Println("0. Выход")
+func sinTaylor(x, eps float64, maxIter int) (float64, int) {
+	x = math.Mod(x, 2*math.Pi)
+	if x > math.Pi {
+		x -= 2 * math.Pi
+	}
+	if x < -math.Pi {
+		x += 2 * math.Pi
+	}
+
+	term := x
+	result := x
+	n := 1
+
+	for i := 1; i <= maxIter; i++ {
+		term *= -x * x / float64((2*n)*(2*n+1))
+		result += term
+		n++
+
+		if math.Abs(term) < eps {
+			return result, i
+		}
+	}
+	return result, maxIter
 }
 
-func createMatrix() [][]float64 {
-	var m, n, choose int
-
-	for {
-		fmt.Print("Введите количество уравнений и неизвестных -- ")
-		_, err := fmt.Scanln(&m, &n)
-		if err != nil {
-			fmt.Println("Ошибка! Введите два числа через пробел")
-			var discard string
-			fmt.Scanln(&discard)
-			continue
-		}
-		if m != n {
-			fmt.Println("Система не имеет одного решения")
-			continue
-		}
-		break
+func cosTaylor(x, eps float64, maxIter int) (float64, int) {
+	x = math.Mod(x, 2*math.Pi)
+	if x > math.Pi {
+		x -= 2 * math.Pi
+	}
+	if x < -math.Pi {
+		x += 2 * math.Pi
 	}
 
-	matrix := make([][]float64, m)
-	for i := range matrix {
-		matrix[i] = make([]float64, n)
-	}
+	term := 1.0
+	result := 1.0
+	n := 1
 
-	for {
-		fmt.Println("1. Ввести с клавиатуры")
-		fmt.Println("2. Заполнить случайно [-10; 10]")
-		fmt.Print("Выберите -- ")
-		_, err := fmt.Scanln(&choose)
-		if err != nil {
-			fmt.Println("Ошибка! Введите число")
-			var discard string
-			fmt.Scanln(&discard)
-			continue
-		}
-		if choose != 1 && choose != 2 {
-			fmt.Println("Ошибка! Введите 1 или 2")
-			continue
-		}
-		break
-	}
+	for i := 1; i <= maxIter; i++ {
+		term *= -x * x / float64((2*n-1)*(2*n))
+		result += term
+		n++
 
-	switch choose {
-	case 1:
-		for i := 0; i < m; i++ {
-			fmt.Printf("Строка %d:\n", i+1)
-			for j := 0; j < n; j++ {
-				var num float64
-				for {
-					fmt.Printf("a[%d][%d] = ", i+1, j+1)
-					_, err := fmt.Scanln(&num)
-					if err != nil {
-						fmt.Println("Ошибка! Введите число")
-						var discard string
-						fmt.Scanln(&discard)
-						continue
-					}
-					matrix[i][j] = num
-					break
-				}
-			}
-		}
-	case 2:
-		for i := 0; i < m; i++ {
-			for j := 0; j < n; j++ {
-				matrix[i][j] = float64(rand.Intn(21) - 10)
-			}
+		if math.Abs(term) < eps {
+			return result, i
 		}
 	}
-
-	return matrix
+	return result, maxIter
 }
 
-func gaussMetod() {
-	m := len(matrix)
-	n := len(matrix[0])
-	matrix := createMatrix()
-	fmt.Println("Матрица:")
-	for _, row := range matrix {
-		fmt.Printf("%4.4v\n", row)
-	}
-	for i := 0; i < m; m++ {
-		for j := 0; j < n; n++ {
-			matrix[i][j] := matrix[i][j] / matrix[i][i]
+func piNilakantha(eps float64, maxIter int) (float64, int) {
+	total := 3.0
+	sign := 1.0
+	n := 2
+
+	for i := 1; i <= maxIter; i++ {
+		term := 4.0 / float64(n*(n+1)*(n+2))
+		total += sign * term
+		sign = -sign
+		n += 2
+
+		if term > eps {
+			continue
 		}
+
+		return total, i
 	}
+	return total, maxIter
+}
+
+func eTaylor(eps float64, maxIter int) (float64, int) {
+	term := 1.0
+	total := 1.0
+	n := 1
+
+	for {
+		if n >= maxIter {
+			break
+		}
+		term /= float64(n)
+		total += term
+
+		if term < eps {
+			break
+		}
+		n++
+	}
+	return total, n
+}
+
+func PrintTable(rows [][5]string) {
+	sep := "+----------------+----------------+----------------+----------------+----------------+"
+
+	fmt.Println(sep)
+	fmt.Printf("| %-14s | %-14s | %-14s | %-14s | %-14s |\n",
+		"Функция", "Приближённо", "Точно", "Погрешность", "Итераций")
+	fmt.Println(sep)
+
+	for _, r := range rows {
+		fmt.Printf("| %-14s | %-14s | %-14s | %-14s | %-14s |\n",
+			r[0], r[1], r[2], r[3], r[4])
+	}
+	fmt.Println(sep)
 }
 
 func main() {
-	var choose int
-	for {
-		printMenu()
-		_, err := fmt.Scanln(&choose)
-		if err != nil {
-			fmt.Println("Ошибка! Введите число")
-			var discard string
-			fmt.Scanln(&discard)
-			continue
-		}
-		switch choose {
-		case 0:
-			fmt.Println("Выход")
-			return
-		case 1:
-			gaussMetod()
-		}
-	}
+	eps := 1e-10
+	x := 1.2
+	maxIter := 1000000
+
+	var rows [][5]string
+
+	approx, it := sinTaylor(x, eps, 10000)
+	rows = append(rows, [5]string{
+		"sin(1.2)",
+		fmt.Sprintf("%.12f", approx),
+		fmt.Sprintf("%.12f", math.Sin(x)),
+		fmt.Sprintf("%.2e", math.Abs(approx-math.Sin(x))),
+		fmt.Sprintf("%d", it),
+	})
+
+	approx, it = cosTaylor(x, eps, 10000)
+	rows = append(rows, [5]string{
+		"cos(1.2)",
+		fmt.Sprintf("%.12f", approx),
+		fmt.Sprintf("%.12f", math.Cos(x)),
+		fmt.Sprintf("%.2e", math.Abs(approx-math.Cos(x))),
+		fmt.Sprintf("%d", it),
+	})
+
+	approx, it = piNilakantha(eps, maxIter)
+	rows = append(rows, [5]string{
+		"π (Нилаканта)",
+		fmt.Sprintf("%.12f", approx),
+		fmt.Sprintf("%.12f", math.Pi),
+		fmt.Sprintf("%.2e", math.Abs(approx-math.Pi)),
+		fmt.Sprintf("%d", it),
+	})
+
+	approx, it = eTaylor(eps, maxIter)
+	rows = append(rows, [5]string{
+		"e",
+		fmt.Sprintf("%.12f", approx),
+		fmt.Sprintf("%.12f", math.E),
+		fmt.Sprintf("%.2e", math.Abs(approx-math.E)),
+		fmt.Sprintf("%d", it),
+	})
+
+	PrintTable(rows)
 }
