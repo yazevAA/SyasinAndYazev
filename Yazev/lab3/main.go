@@ -55,6 +55,19 @@ func cosTaylor(x, eps float64, maxIter int) (float64, int) {
 	return result, maxIter
 }
 
+func sinTaylorWhyle (x, eps float64, maxIter int) (float64, int) {
+	 x = math.Mod(x, 2*math.Pi)
+	if x > math.Pi {
+		x -= 2 * math.Pi
+	}
+	if x < -math.Pi {
+		x += 2 * math.Pi
+	}
+
+	for math.Abs(result - math.Sin(1.2) <= 
+
+}
+
 func piNilakantha(eps float64, maxIter int) (float64, int) {
 	total := 3.0
 	sign := 1.0
@@ -137,7 +150,7 @@ func main() {
 
 	approx, it = piNilakantha(eps, maxIter)
 	rows = append(rows, [5]string{
-		"π (Нилаканта)",
+		"pi (Нилаканта)",
 		fmt.Sprintf("%.12f", approx),
 		fmt.Sprintf("%.12f", math.Pi),
 		fmt.Sprintf("%.2e", math.Abs(approx-math.Pi)),
