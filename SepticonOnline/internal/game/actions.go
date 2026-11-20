@@ -240,6 +240,7 @@ func (g *Game) LaunchRocket(
 }
 
 // Обработка игровых процессов в конце хода
+
 func (g *Game) AdvanceProcesses() {
 	// Продвижение ракет
 	for i := range g.Rockets {
@@ -258,7 +259,8 @@ func (g *Game) AdvanceProcesses() {
 			}
 		}
 	}
-	// Продвижение ремонтных работ
+
+	// Продвижение ремонта отсеков
 	g.AdvanceRepairs()
 }
 

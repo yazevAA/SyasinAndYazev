@@ -1,39 +1,43 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
+	"time"
+
+	"septikon-online/internal/httpapi"
+	"septikon-online/internal/room"
 )
 
-// Ответ сервера
-type ServerResponse struct {
-	Status  string `json:"status"`
-	Message string `json:"message"`
-}
+func main() {
+	// Создаём менеджер игровых комнат.
+	roomManager := room.NewManager()
 
-// Проверка работоспособности сервера
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
+	// Создаём HTTP API.
+	apiHandler := httpapi.NewHandler(roomManager)
 
-	response := ServerResponse{
-		Status:  "ok",
-		Message: "Septikon Online Backend работает!",
+	// Настраиваем маршруты.
+	mux := http.NewServeMux()
+
+	mux.Handle("/api/rooms", apiHandler)
+	mux.Handle("/api/rooms/", apiHandler)
+
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	})
+
+	// Запускаем сервер.
+	server := &http.Server{
+		Addr:              ":8080",
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	json.NewEncoder(w).Encode(response)
-}
+	log.Println("Septikon Online server started on :8080")
 
-// Запуск сервера
-func main() {
-	http.HandleFunc("/health", healthHandler)
-
-	log.Println("Septikon Online Backend запускается...")
-	log.Println("Сервер доступен: http://localhost:8080")
-
-	err := http.ListenAndServe(":8080", nil)
-
-	if err != nil {
-		log.Fatal("Ошибка запуска сервера:", err)
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatal(err)
 	}
 }
