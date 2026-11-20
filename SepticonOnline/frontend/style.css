@@ -1,0 +1,121 @@
+/* Сброс отступов и базовые настройки */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    /* Темно-синий градиентный фон */
+    background: radial-gradient(circle at center, #1a1a3a 0%, #050510 100%);
+    height: 100vh;
+    overflow: hidden; /* Чтобы не было скролла */
+    font-family: 'Montserrat', sans-serif;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+/* --- Стили для фона со звездами --- */
+.star-field {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Чтобы звезды не мешали кликам */
+    z-index: 1;
+}
+
+.star {
+    position: absolute;
+    color: #4a4a6a; /* Тусклый цвет звезд */
+    font-size: 20px;
+    font-weight: 300;
+    opacity: 0.6;
+    /* Анимация мерцания */
+    animation: twinkle 3s infinite ease-in-out alternate;
+}
+
+/* Разная задержка для разных звезд, чтобы мерцали не синхронно */
+.star:nth-child(odd) { animation-delay: 1s; }
+.star:nth-child(3n) { animation-delay: 2s; }
+
+@keyframes twinkle {
+    0% { opacity: 0.3; }
+    100% { opacity: 0.8; }
+}
+
+/* --- Стили для меню --- */
+.menu-container {
+    position: relative;
+    z-index: 10; /* Меню поверх звезд */
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.title {
+    font-size: 80px;
+    font-weight: 300; /* Тонкий шрифт, как на картинке */
+    letter-spacing: 2px;
+    color: #7adbf0; /* Голубоватый цвет */
+    text-shadow: 0 0 15px rgba(122, 219, 240, 0.3); /* Легкое свечение */
+    margin-bottom: 0;
+}
+
+.subtitle {
+    font-size: 40px;
+    font-weight: 300;
+    color: #8888a0;
+    margin-bottom: 40px;
+    letter-spacing: 1px;
+}
+
+.buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 20px; /* Расстояние между кнопками */
+    width: 400px; /* Ширина кнопок */
+}
+
+.btn {
+    background-color: #3cbcc3; /* Цвет кнопки (бирюзовый) */
+    color: white;
+    border: 2px solid #7ce3e8; /* Светлая обводка */
+    border-radius: 5px;
+    padding: 18px 0;
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    font-family: inherit;
+}
+
+.btn:hover {
+    background-color: #55d6dd;
+    box-shadow: 0 0 15px rgba(85, 214, 221, 0.5); /* Свечение при наведении */
+    transform: translateY(-2px); /* Легкое поднятие */
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+/* --- Логотип --- */
+.logo {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    font-size: 14px;
+    font-weight: bold;
+    color: white;
+    z-index: 10;
+    letter-spacing: 0.5px;
+}
