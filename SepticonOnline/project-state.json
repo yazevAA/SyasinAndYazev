@@ -1,0 +1,187 @@
+{
+  "project": {
+    "name": "Septikon Online",
+    "module": "septikon-online",
+    "backend_language": "Go",
+    "backend_status": "paused_for_frontend_handoff",
+    "snapshot_date": "2026-11-25",
+    "purpose": "Online implementation of the Septikon board game for two players."
+  },
+  "team_work_split": {
+    "backend_owner": "Participant 1",
+    "frontend_owner": "Frontend colleague",
+    "integration_rule": "Backend is the source of truth for game state and rules. Frontend renders server state and sends player actions."
+  },
+  "backend": {
+    "technology": "Go",
+    "module": "septikon-online",
+    "known_project_structure": [
+      "cmd/server",
+      "internal/board",
+      "internal/game",
+      "internal/httpapi",
+      "internal/player",
+      "internal/resources",
+      "internal/robot",
+      "internal/rocket",
+      "internal/room",
+      "internal/turns"
+    ],
+    "transport": {
+      "http": "HTTP JSON API",
+      "default_local_address": "http://localhost:8080",
+      "realtime": "WebSocket is not yet confirmed as implemented; use HTTP polling for the initial frontend."
+    },
+    "verification": {
+      "latest_reported_command": "go test ./...",
+      "latest_reported_result": "All packages passed or compiled successfully in the latest reported run.",
+      "important_note": "Run the command again against the current checkout before integration; this file is a handoff snapshot, not a live inspection of the repository."
+    },
+    "implemented_or_present_areas": [
+      "Board model and compartment-related logic",
+      "Game state and game actions",
+      "Player and inventory/resource-related models",
+      "Robot-related models and logic",
+      "Rocket-related models and logic",
+      "Room creation/joining and room management",
+      "Turn-related logic",
+      "HTTP API package"
+    ],
+    "game_rules_and_constraints": {
+      "players_per_game": 2,
+      "board_requirement": "The board layout and compartment arrangement must match the board image and official rules supplied by the user. Do not invent a simplified or alternative board.",
+      "turn_flow": "A turn includes a dice roll and a main action, subject to the backend's current validation.",
+      "robots": "Robot movement is tied to the dice roll and server-side game rules.",
+      "rockets": "Rocket progression is handled by game logic over turns.",
+      "production_and_repairs": "Production and repair are time/turn-based game processes handled by the backend.",
+      "starting_resources_reported": {
+        "metal": 10,
+        "uranium": 5,
+        "oxygen": 10,
+        "biomass": 5,
+        "energy": 10
+      },
+      "starting_resources_note": "Confirm against the current backend initialization before displaying these as immutable UI constants."
+    },
+    "known_api_routes_from_prior_handoff": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "purpose": "Backend health check"
+      },
+      {
+        "method": "GET",
+        "path": "/api/rooms",
+        "purpose": "List rooms"
+      },
+      {
+        "method": "POST",
+        "path": "/api/rooms",
+        "purpose": "Create a room"
+      },
+      {
+        "method": "GET",
+        "path": "/api/rooms/{id}",
+        "purpose": "Get room and current game state"
+      },
+      {
+        "method": "POST",
+        "path": "/api/rooms/{id}/join",
+        "purpose": "Join a room"
+      },
+      {
+        "method": "POST",
+        "path": "/api/rooms/{id}/game/roll",
+        "purpose": "Roll the die"
+      },
+      {
+        "method": "POST",
+        "path": "/api/rooms/{id}/game/end-turn",
+        "purpose": "End the current turn"
+      },
+      {
+        "method": "POST",
+        "path": "/api/rooms/{id}/game/move-robot",
+        "purpose": "Move a robot"
+      },
+      {
+        "method": "POST",
+        "path": "/api/rooms/{id}/game/repair",
+        "purpose": "Start or perform a repair action"
+      }
+    ],
+    "api_contract_caveats": [
+      "The route list is reconstructed from previous project discussions and must be checked against the current router before frontend integration.",
+      "Exact request body fields, response envelopes, error formats, and JSON property casing must be copied from the current Go handlers and structs.",
+      "A previous handoff mentioned playerID in action request bodies; verify exact casing and required fields in the current code.",
+      "Do not assume that add-robot, production, resource collection, rocket launch/control, or repair-status routes are available until verified."
+    ],
+    "known_gaps_or_follow_up": [
+      "Verify every route and its exact request/response schema against current handlers.",
+      "Complete any missing action endpoints needed by the full rules: robot creation, production, resource collection, rocket actions, and task/status retrieval as applicable.",
+      "Add or verify validation for robot movement paths and action connectivity.",
+      "Review concurrent room/game state updates and disconnect handling.",
+      "Authentication/player identity strategy is not confirmed as complete.",
+      "Persistent storage is not confirmed; current state has previously been described as in-memory.",
+      "WebSocket/realtime updates are not confirmed; HTTP polling is the initial integration approach.",
+      "Victory/end-condition handling should be verified against the full rules."
+    ]
+  },
+  "frontend": {
+    "status": "not_started_or_not_confirmed",
+    "proposed_stack": {
+      "framework": "React",
+      "language": "TypeScript",
+      "bundler": "Vite",
+      "styling": "CSS Modules or plain CSS initially",
+      "status": "Proposal only; confirm with the frontend developer before scaffolding."
+    },
+    "core_principles": [
+      "Backend is authoritative for all game rules and state.",
+      "Do not duplicate dice, movement, production, repair, rocket, resource, or victory calculations in the browser.",
+      "After an action, refresh the room/game state from the backend.",
+      "Identify the local player using the player ID returned or assigned by the backend; do not infer identity from array order.",
+      "Show loading, validation, network, and server-error states.",
+      "Disable actions that the server reports as unavailable; still handle server-side rejection gracefully.",
+      "Initially poll GET /api/rooms/{id} approximately every 1-2 seconds while a game is active, then replace or supplement polling when WebSocket support exists."
+    ],
+    "suggested_ui_areas": [
+      "Main menu and room browser",
+      "Create room / join room",
+      "Waiting room with player slots",
+      "Game screen",
+      "Board view matching the supplied board image and rules",
+      "Player/station panels",
+      "Resources and inventory",
+      "Robot controls and status",
+      "Rocket status",
+      "Production and repair task status",
+      "Dice roll and turn controls",
+      "Action history / notifications",
+      "Connection and error indicators"
+    ],
+    "suggested_initial_milestones": [
+      "Create React + TypeScript + Vite application and environment configuration.",
+      "Implement API client and typed interfaces from verified backend JSON.",
+      "Implement health check and room list/create/join flows.",
+      "Implement waiting room and player identity handling.",
+      "Render board from backend board data without hardcoding game state.",
+      "Implement turn display, dice roll, and end-turn flow.",
+      "Add robot, repair, production, resource, and rocket UI as their endpoints are verified.",
+      "Test two browser sessions against the same backend room."
+    ],
+    "environment": {
+      "VITE_API_BASE_URL": "http://localhost:8080"
+    }
+  },
+  "handoff_checklist": [
+    "Open the current backend repository and run go test ./...",
+    "Check the actual HTTP router and record all registered routes.",
+    "Check Go JSON tags and copy exact request/response schemas into frontend-contract.md.",
+    "Confirm CORS settings for the frontend development origin.",
+    "Confirm whether player IDs are generated by the backend or supplied by the client.",
+    "Confirm whether room state is in-memory and what happens after server restart.",
+    "Agree on React + TypeScript + Vite or replace the proposed stack.",
+    "Start frontend with room flow and read-only game-state rendering before implementing every action."
+  ]
+}
