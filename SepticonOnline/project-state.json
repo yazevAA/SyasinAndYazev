@@ -1,187 +1,294 @@
+
 {
   "project": {
     "name": "Septikon Online",
-    "module": "septikon-online",
+    "description": "Онлайн-версия настольной стратегической игры Septikon с двумя игроками, собственными станциями и пошаговой системой ходов.",
     "backend_language": "Go",
-    "backend_status": "paused_for_frontend_handoff",
+    "frontend_language": "TypeScript",
+    "data_exchange_format": "JSON",
+    "communication_protocol": "HTTP",
     "snapshot_date": "2026-11-25",
-    "purpose": "Online implementation of the Septikon board game for two players."
+    "document_purpose": "Описание текущего состояния проекта и передача технической информации frontend-разработчику."
   },
-  "team_work_split": {
-    "backend_owner": "Participant 1",
-    "frontend_owner": "Frontend colleague",
-    "integration_rule": "Backend is the source of truth for game state and rules. Frontend renders server state and sends player actions."
+  "team": {
+    "backend_responsibility": "Разработка серверной части, игровой логики, правил, обработки запросов и управления состоянием игры.",
+    "frontend_responsibility": "Разработка пользовательского интерфейса, отображение игрового поля, комнат, игроков и взаимодействие с Backend через API.",
+    "integration_principle": "Frontend получает игровое состояние от Backend и отправляет команды. Backend отвечает за проверку правил и изменение игрового состояния."
   },
   "backend": {
-    "technology": "Go",
-    "module": "septikon-online",
-    "known_project_structure": [
-      "cmd/server",
-      "internal/board",
-      "internal/game",
-      "internal/httpapi",
-      "internal/player",
-      "internal/resources",
-      "internal/robot",
-      "internal/rocket",
-      "internal/room",
-      "internal/turns"
-    ],
-    "transport": {
-      "http": "HTTP JSON API",
-      "default_local_address": "http://localhost:8080",
-      "realtime": "WebSocket is not yet confirmed as implemented; use HTTP polling for the initial frontend."
-    },
-    "verification": {
-      "latest_reported_command": "go test ./...",
-      "latest_reported_result": "All packages passed or compiled successfully in the latest reported run.",
-      "important_note": "Run the command again against the current checkout before integration; this file is a handoff snapshot, not a live inspection of the repository."
-    },
-    "implemented_or_present_areas": [
-      "Board model and compartment-related logic",
-      "Game state and game actions",
-      "Player and inventory/resource-related models",
-      "Robot-related models and logic",
-      "Rocket-related models and logic",
-      "Room creation/joining and room management",
-      "Turn-related logic",
-      "HTTP API package"
-    ],
-    "game_rules_and_constraints": {
-      "players_per_game": 2,
-      "board_requirement": "The board layout and compartment arrangement must match the board image and official rules supplied by the user. Do not invent a simplified or alternative board.",
-      "turn_flow": "A turn includes a dice roll and a main action, subject to the backend's current validation.",
-      "robots": "Robot movement is tied to the dice roll and server-side game rules.",
-      "rockets": "Rocket progression is handled by game logic over turns.",
-      "production_and_repairs": "Production and repair are time/turn-based game processes handled by the backend.",
-      "starting_resources_reported": {
-        "metal": 10,
-        "uranium": 5,
-        "oxygen": 10,
-        "biomass": 5,
-        "energy": 10
+    "language": "Go",
+    "module_name": "septikon-online",
+    "local_address": "http://localhost:8080",
+    "start_command": "go run ./cmd/server",
+    "test_command": "go test ./...",
+    "last_confirmed_test_result": "Все пакеты успешно проходили go test ./... по последнему подтверждённому результату от 25.11.2026.",
+    "packages": {
+      "cmd/server": {
+        "description": "Точка входа приложения. Запуск HTTP-сервера."
       },
-      "starting_resources_note": "Confirm against the current backend initialization before displaying these as immutable UI constants."
-    },
-    "known_api_routes_from_prior_handoff": [
-      {
-        "method": "GET",
-        "path": "/health",
-        "purpose": "Backend health check"
+      "internal/board": {
+        "description": "Игровое поле, уровни, отсеки, состояние и повреждения отсеков."
       },
+      "internal/game": {
+        "description": "Основная игровая логика, правила и выполнение игровых действий."
+      },
+      "internal/httpapi": {
+        "description": "HTTP-обработчики, маршрутизация запросов и обмен JSON-данными."
+      },
+      "internal/player": {
+        "description": "Игрок, его станция, инвентарь, роботы и игровые задачи."
+      },
+      "internal/resources": {
+        "description": "Типы ресурсов и механика производства."
+      },
+      "internal/robot": {
+        "description": "Игровые роботы, их характеристики и позиции."
+      },
+      "internal/rocket": {
+        "description": "Игровые ракеты и механика их перемещения."
+      },
+      "internal/room": {
+        "description": "Создание комнат, подключение игроков и управление игровыми комнатами."
+      },
+      "internal/turns": {
+        "description": "Очередность ходов и состояние текущего хода."
+      }
+    },
+    "current_limitations": {
+      "database": "Подключение базы данных пока не подтверждено.",
+      "websocket": "WebSocket пока не реализован.",
+      "authentication": "Полноценная система авторизации пока не реализована.",
+      "room_storage": "Комнаты хранятся в оперативной памяти. После перезапуска сервера они могут исчезнуть.",
+      "cors": "Необходимо проверить и настроить CORS для адреса Frontend."
+    }
+  },
+  "game": {
+    "players_per_room": 2,
+    "board": {
+      "underground_levels": 8,
+      "compartments_per_underground_level": 21,
+      "surface_level": 9,
+      "compartment_id_format": "L{level}-C{position}",
+      "level_numbering": {
+        "minimum": 1,
+        "maximum": 9
+      },
+      "position_numbering": {
+        "minimum": 1,
+        "maximum": 21
+      },
+      "description": "Станция состоит из восьми подземных уровней по 21 отсеку и отдельной поверхности, обозначаемой уровнем 9. Визуальная раскладка должна соответствовать оригинальному игровому полю и правилам Septikon."
+    },
+    "compartment_types": [
+      "unknown",
+      "production",
+      "combat",
+      "energy",
+      "resource",
+      "rocket",
+      "command"
+    ],
+    "resources": [
+      "metal",
+      "uranium",
+      "oxygen",
+      "biomass",
+      "energy"
+    ],
+    "turn_rules": {
+      "one_dice_roll_per_turn": true,
+      "one_main_action_per_turn": true,
+      "main_action_requires_dice_roll": true,
+      "end_turn_requires_dice_roll_and_action": true,
+      "processes_advance_at_end_of_turn": [
+        "rockets",
+        "production_tasks",
+        "repairs"
+      ]
+    },
+    "important_frontend_rule": "Frontend не должен самостоятельно рассчитывать игровые результаты. Все проверки и изменения состояния выполняет Backend."
+  },
+  "api": {
+    "base_url": "http://localhost:8080",
+    "format": "application/json",
+    "confirmed_from_available_handler": [
       {
         "method": "GET",
         "path": "/api/rooms",
-        "purpose": "List rooms"
+        "description": "Получение списка комнат."
       },
       {
         "method": "POST",
         "path": "/api/rooms",
-        "purpose": "Create a room"
+        "description": "Создание новой комнаты.",
+        "request": {
+          "playerId": "string",
+          "playerName": "string"
+        },
+        "success_status": 201
       },
       {
         "method": "GET",
-        "path": "/api/rooms/{id}",
-        "purpose": "Get room and current game state"
+        "path": "/api/rooms/{roomId}",
+        "description": "Получение информации о комнате."
       },
       {
         "method": "POST",
-        "path": "/api/rooms/{id}/join",
-        "purpose": "Join a room"
+        "path": "/api/rooms/{roomId}/join",
+        "description": "Подключение игрока к комнате.",
+        "request": {
+          "playerId": "string",
+          "playerName": "string"
+        }
       },
       {
         "method": "POST",
-        "path": "/api/rooms/{id}/game/roll",
-        "purpose": "Roll the die"
+        "path": "/api/rooms/{roomId}/game/roll",
+        "description": "Бросок кубика.",
+        "request": {
+          "playerId": "string"
+        },
+        "response": {
+          "result": "number"
+        }
       },
       {
         "method": "POST",
-        "path": "/api/rooms/{id}/game/end-turn",
-        "purpose": "End the current turn"
+        "path": "/api/rooms/{roomId}/game/end-turn",
+        "description": "Завершение хода.",
+        "request": {
+          "playerId": "string"
+        }
       },
       {
         "method": "POST",
-        "path": "/api/rooms/{id}/game/move-robot",
-        "purpose": "Move a robot"
+        "path": "/api/rooms/{roomId}/game/move-robot",
+        "description": "Перемещение робота.",
+        "request": {
+          "playerId": "string",
+          "robotId": "string",
+          "path": [
+            {
+              "level": "number",
+              "position": "number"
+            }
+          ]
+        }
       },
       {
         "method": "POST",
-        "path": "/api/rooms/{id}/game/repair",
-        "purpose": "Start or perform a repair action"
+        "path": "/api/rooms/{roomId}/game/repair",
+        "description": "Запуск ремонта отсека.",
+        "request": {
+          "playerId": "string",
+          "taskId": "string",
+          "compartmentId": "string"
+        }
       }
     ],
-    "api_contract_caveats": [
-      "The route list is reconstructed from previous project discussions and must be checked against the current router before frontend integration.",
-      "Exact request body fields, response envelopes, error formats, and JSON property casing must be copied from the current Go handlers and structs.",
-      "A previous handoff mentioned playerID in action request bodies; verify exact casing and required fields in the current code.",
-      "Do not assume that add-robot, production, resource collection, rocket launch/control, or repair-status routes are available until verified."
-    ],
-    "known_gaps_or_follow_up": [
-      "Verify every route and its exact request/response schema against current handlers.",
-      "Complete any missing action endpoints needed by the full rules: robot creation, production, resource collection, rocket actions, and task/status retrieval as applicable.",
-      "Add or verify validation for robot movement paths and action connectivity.",
-      "Review concurrent room/game state updates and disconnect handling.",
-      "Authentication/player identity strategy is not confirmed as complete.",
-      "Persistent storage is not confirmed; current state has previously been described as in-memory.",
-      "WebSocket/realtime updates are not confirmed; HTTP polling is the initial integration approach.",
-      "Victory/end-condition handling should be verified against the full rules."
+    "health_endpoint": {
+      "method": "GET",
+      "path": "/health",
+      "description": "Проверка доступности сервера.",
+      "expected_response": {
+        "status": "ok"
+      },
+      "note": "Маршрут известен по материалам проекта. Перед интеграцией проверить его в актуальном файле запуска сервера."
+    },
+    "error_response": {
+      "error": "string"
+    },
+    "known_http_statuses": {
+      "200": "Запрос успешно обработан.",
+      "201": "Комната успешно создана.",
+      "400": "Некорректный запрос или недопустимое игровое действие.",
+      "404": "Комната или маршрут не найдены.",
+      "405": "HTTP-метод не поддерживается."
+    },
+    "unconfirmed_endpoints": [
+      "Запуск ракеты: точный HTTP-маршрут и формат ответа необходимо сверить с актуальным handler.go.",
+      "Добавление робота отдельным HTTP-запросом.",
+      "Запуск производства отдельным HTTP-запросом.",
+      "Получение готовых ресурсов отдельным HTTP-запросом.",
+      "Получение обновлений через WebSocket."
     ]
   },
   "frontend": {
-    "status": "not_started_or_not_confirmed",
-    "proposed_stack": {
+    "status": "not_started",
+    "recommended_stack": {
       "framework": "React",
       "language": "TypeScript",
       "bundler": "Vite",
-      "styling": "CSS Modules or plain CSS initially",
-      "status": "Proposal only; confirm with the frontend developer before scaffolding."
+      "note": "Это рекомендация для реализации Frontend, а не обязательное требование задания по Go. Команда может использовать другой согласованный стек."
     },
-    "core_principles": [
-      "Backend is authoritative for all game rules and state.",
-      "Do not duplicate dice, movement, production, repair, rocket, resource, or victory calculations in the browser.",
-      "After an action, refresh the room/game state from the backend.",
-      "Identify the local player using the player ID returned or assigned by the backend; do not infer identity from array order.",
-      "Show loading, validation, network, and server-error states.",
-      "Disable actions that the server reports as unavailable; still handle server-side rejection gracefully.",
-      "Initially poll GET /api/rooms/{id} approximately every 1-2 seconds while a game is active, then replace or supplement polling when WebSocket support exists."
+    "main_responsibilities": [
+      "Отображение главного меню и списка комнат.",
+      "Создание комнаты.",
+      "Подключение второго игрока.",
+      "Отображение экрана ожидания.",
+      "Отображение двух игровых станций.",
+      "Отображение отсеков, роботов, ресурсов, ракет и игровых задач.",
+      "Отображение текущего игрока и состояния хода.",
+      "Отправка игровых команд на Backend.",
+      "Отображение ошибок и состояния соединения."
     ],
-    "suggested_ui_areas": [
-      "Main menu and room browser",
-      "Create room / join room",
-      "Waiting room with player slots",
-      "Game screen",
-      "Board view matching the supplied board image and rules",
-      "Player/station panels",
-      "Resources and inventory",
-      "Robot controls and status",
-      "Rocket status",
-      "Production and repair task status",
-      "Dice roll and turn controls",
-      "Action history / notifications",
-      "Connection and error indicators"
+    "development_rules": [
+      "Не дублировать игровую логику Backend.",
+      "Не рассчитывать результаты бросков кубика самостоятельно.",
+      "Не изменять ресурсы локально как окончательный результат игрового действия.",
+      "Не создавать запросы к несуществующим API-маршрутам.",
+      "После успешного игрового действия получать актуальное состояние комнаты.",
+      "Использовать серверные данные как единственный источник истины."
     ],
-    "suggested_initial_milestones": [
-      "Create React + TypeScript + Vite application and environment configuration.",
-      "Implement API client and typed interfaces from verified backend JSON.",
-      "Implement health check and room list/create/join flows.",
-      "Implement waiting room and player identity handling.",
-      "Render board from backend board data without hardcoding game state.",
-      "Implement turn display, dice roll, and end-turn flow.",
-      "Add robot, repair, production, resource, and rocket UI as their endpoints are verified.",
-      "Test two browser sessions against the same backend room."
-    ],
-    "environment": {
-      "VITE_API_BASE_URL": "http://localhost:8080"
+    "synchronization": {
+      "websocket": false,
+      "initial_strategy": "Получение состояния комнаты через GET-запрос после создания или подключения.",
+      "temporary_strategy": "Polling через GET /api/rooms/{roomId} примерно раз в 1-2 секунды.",
+      "important": "Не допускать одновременного выполнения нескольких polling-запросов."
     }
   },
-  "handoff_checklist": [
-    "Open the current backend repository and run go test ./...",
-    "Check the actual HTTP router and record all registered routes.",
-    "Check Go JSON tags and copy exact request/response schemas into frontend-contract.md.",
-    "Confirm CORS settings for the frontend development origin.",
-    "Confirm whether player IDs are generated by the backend or supplied by the client.",
-    "Confirm whether room state is in-memory and what happens after server restart.",
-    "Agree on React + TypeScript + Vite or replace the proposed stack.",
-    "Start frontend with room flow and read-only game-state rendering before implementing every action."
-  ]
+  "project_work_requirements": {
+    "main_topics": [
+      "Модули и пакеты Go.",
+      "Работа с текстовыми файлами.",
+      "Работа с JSON.",
+      "Конкурентное программирование.",
+      "Работа с базой данных.",
+      "Сетевое программирование."
+    ],
+    "engineering_requirements": [
+      "Совместная разработка через Git.",
+      "Swagger UI для Backend API.",
+      "CI/CD pipeline.",
+      "Автоматизация сборки через Docker.",
+      "Взаимодействие с Kafka или RabbitMQ.",
+      "Итоговая презентация в PDF или PPTX."
+    ],
+    "additional_topics": [
+      "Тестирование.",
+      "Продвинутые паттерны проектирования."
+    ],
+    "status_note": "Эти требования необходимо реализовать и продемонстрировать в ходе проекта. Наличие требования в данном файле не означает, что оно уже реализовано."
+  },
+  "next_steps": {
+    "frontend": [
+      "Создать каркас приложения.",
+      "Настроить адрес Backend.",
+      "Реализовать HTTP-клиент.",
+      "Реализовать список и создание комнат.",
+      "Реализовать подключение второго игрока.",
+      "Получить и изучить реальный JSON комнаты.",
+      "Отрисовать игровое поле по оригинальной схеме.",
+      "Подключить подтверждённые игровые действия."
+    ],
+    "backend": [
+      "Продолжить разработку игровой логики.",
+      "Сверить и расширить HTTP API по мере необходимости.",
+      "Настроить CORS.",
+      "Подготовить Swagger UI.",
+      "Добавить базу данных.",
+      "Добавить брокер сообщений.",
+      "Подготовить Docker и CI/CD."
+    ]
+  }
 }

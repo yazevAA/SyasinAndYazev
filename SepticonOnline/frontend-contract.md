@@ -1,94 +1,502 @@
-# Frontend Contract — Septikon Online
 
-> Handoff snapshot: 2026-11-25. This document is a working contract reconstructed from prior project work. Verify every route and JSON field against the current Go handlers and `json` struct tags before relying on it in production.
+# SEPTIKON ONLINE
+# Контракт взаимодействия Frontend и Backend
 
-## 1. Integration principles
+Версия документа: 1.0  
+Дата: 25.11.2026
 
-- The Go backend is the source of truth for the board, players, turns, resources, robots, rockets, production, repairs, and victory conditions.
-- The frontend renders received state and sends user actions. It must not independently simulate game rules.
-- After an action, fetch the room state again. Handle server errors even if the UI has already disabled an unavailable action.
-- Use the player ID returned/assigned by the backend. Do not assume that `players[0]` is always the local player.
-- Initial synchronization can use polling of `GET /api/rooms/{id}` every 1–2 seconds while the game is active. WebSocket support is not confirmed.
+---
 
-## 2. Known routes
+## 1. Назначение документа
 
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/health` | Health check |
-| GET | `/api/rooms` | List rooms |
-| POST | `/api/rooms` | Create room |
-| GET | `/api/rooms/{id}` | Get room and game state |
-| POST | `/api/rooms/{id}/join` | Join room |
-| POST | `/api/rooms/{id}/game/roll` | Roll die |
-| POST | `/api/rooms/{id}/game/end-turn` | End turn |
-| POST | `/api/rooms/{id}/game/move-robot` | Move robot |
-| POST | `/api/rooms/{id}/game/repair` | Repair action |
+Этот документ описывает правила взаимодействия клиентской части (Frontend) и серверной части (Backend) проекта Septikon Online.
 
-**Important:** these paths are the routes recorded in the previous handoff. Confirm the current router. In particular, verify whether the `/game` segment is present in every action route.
+Главная задача документа — предоставить Frontend-разработчику информацию о доступных HTTP-маршрутах, формате запросов, формате ответов и принципах получения игрового состояния.
 
-## 3. Request/response schema verification
+Frontend и Backend разрабатываются разными участниками команды, поэтому взаимодействие между ними должно происходить по согласованному API-контракту.
 
-The previous handoff discussed these data concepts:
+## 2. Общая архитектура
 
-- `Room`
-- `Game`
-- `Turn`
-- `Player`
-- `Board`
-- `Compartment`
-- `Inventory`
-- `Robot`
-- `Rocket`
-- `ProductionTask`
-- `RepairTask`
+Проект использует клиент-серверную архитектуру.
 
-Do not create final TypeScript interfaces from names alone. Inspect the Go structs and their JSON tags. A previous note mentioned `playerID` in action bodies, but exact casing and required fields must be verified.
+Frontend отвечает за:
+- отображение пользовательского интерфейса;
+- отображение игрового поля;
+- отображение игроков и их станций;
+- отображение ресурсов и игровых объектов;
+- отправку команд пользователя;
+- обработку ответов сервера;
+- отображение ошибок и состояния соединения.
 
-For each endpoint, document:
-1. Exact URL and HTTP method.
-2. Required request JSON.
-3. Successful response JSON.
-4. Error response format and HTTP status codes.
-5. Whether the endpoint mutates state.
-6. Whether the caller must be the current player.
+Backend отвечает за:
+- хранение состояния игровых комнат;
+- создание и подключение игроков;
+- проверку игровых правил;
+- обработку игровых действий;
+- изменение состояния игры;
+- проверку допустимости перемещения роботов;
+- обработку производства, ремонта и ракет;
+- определение очередности ходов.
 
-## 4. Actions that need route verification
+Frontend не должен самостоятельно реализовывать серверные правила.
 
-The full game interface may need endpoints for:
-- adding/creating robots;
-- production setup and resource collection;
-- rocket launch and rocket status/actions;
-- repair task status;
-- any other action shown in the official rules.
+Backend является единственным источником достоверного игрового состояния.
 
-These are not marked as available until confirmed in the current backend.
+## 3. Адрес Backend
 
-## 5. Polling strategy
+При локальном запуске:
 
-Initial implementation:
-- Fetch room state immediately after joining.
-- While the game is active, poll `GET /api/rooms/{id}` every 1–2 seconds.
-- Stop polling when leaving the room or unmounting the game screen.
-- Avoid overlapping requests; if a request is still in flight, skip the next poll.
-- Refresh state immediately after a successful action.
-- Display a clear disconnected/loading state if requests fail.
+http://localhost:8080
 
-When WebSocket support is implemented, replace polling with server-pushed updates or use polling only as a fallback.
+Все запросы должны отправляться на этот адрес с соответствующим API-маршрутом.
 
-## 6. CORS and local development
+Пример:
 
-Frontend environment variable:
+GET http://localhost:8080/api/rooms
 
-```env
-VITE_API_BASE_URL=http://localhost:8080
-```
+Если Frontend и Backend запущены на разных компьютерах, вместо localhost необходимо использовать IP-адрес или имя компьютера, на котором работает Backend.
 
-The backend must allow the frontend development origin (commonly `http://localhost:5173`) through CORS. Confirm the actual configured origin and allowed methods/headers before integration.
+## 4. Формат обмена данными
 
-## 7. Board rendering requirements
+Все запросы с телом должны передавать JSON.
 
-- Reproduce the board layout from the board image and official rules supplied by the project owner.
-- Do not invent a different number or arrangement of levels/compartments.
-- Prefer rendering cells from the board data returned by the backend.
-- Keep visual coordinates/layout metadata separate from game state where possible.
-- Show ownership, compartment type, robot position, damage, and other visual states only when those values exist in the backend response.
+Заголовок:
+
+Content-Type: application/json
+
+Пример:
+
+{
+  "playerId": "player-1",
+  "playerName": "Player 1"
+}
+
+Ответы сервера также передаются в формате JSON.
+
+## 5. Обработка ошибок
+
+Известный формат ошибки:
+
+{
+  "error": "Описание ошибки"
+}
+
+Frontend должен:
+1. Проверять HTTP-статус ответа.
+2. Проверять, удалось ли выполнить запрос.
+3. Читать поле error, если сервер вернул ошибку.
+4. Показывать пользователю понятное сообщение.
+5. Не считать запрос успешным только потому, что сервер вернул JSON.
+
+Известные HTTP-статусы:
+
+- 200 — запрос выполнен успешно.
+- 201 — комната создана.
+- 400 — некорректный запрос или недопустимое игровое действие.
+- 404 — комната или маршрут не найдены.
+- 405 — HTTP-метод не поддерживается.
+
+## 6. Проверка доступности сервера
+
+Метод: GET
+
+Маршрут:
+
+/health
+
+Назначение:
+
+Проверка того, что Backend запущен и принимает запросы.
+
+Ожидаемый ответ:
+
+{
+  "status": "ok"
+}
+
+Этот маршрут удобно использовать при запуске Frontend для проверки соединения.
+
+Перед интеграцией необходимо сверить маршрут с актуальной конфигурацией сервера.
+
+## 7. Получение списка комнат
+
+Метод: GET
+
+Маршрут:
+
+/api/rooms
+
+Назначение:
+
+Получение списка доступных игровых комнат.
+
+Тело запроса отсутствует.
+
+Ответ:
+
+Массив объектов Room.
+
+Точная структура Room должна определяться по актуальным JSON-тегам Go-структуры Room.
+
+Frontend должен использовать полученные данные для отображения списка комнат.
+
+## 8. Создание комнаты
+
+Метод: POST
+
+Маршрут:
+
+/api/rooms
+
+Тело запроса:
+
+{
+  "playerId": "player-1",
+  "playerName": "Player 1"
+}
+
+Поля:
+
+playerId — идентификатор создающего комнату игрока.
+
+playerName — отображаемое имя игрока.
+
+Успешный ответ:
+
+Объект Room.
+
+HTTP-статус:
+
+201 Created.
+
+После создания комнаты Frontend должен сохранить идентификатор комнаты и перейти на экран ожидания второго игрока.
+
+Важно: способ формирования playerId необходимо согласовать внутри команды. Не следует рассчитывать, что Backend автоматически создаёт идентификатор, если это не подтверждено его реализацией.
+
+## 9. Получение информации о комнате
+
+Метод: GET
+
+Маршрут:
+
+/api/rooms/{roomId}
+
+Пример:
+
+/api/rooms/room-1
+
+Назначение:
+
+Получение актуальной информации о комнате и её игровом состоянии.
+
+Тело запроса отсутствует.
+
+Ответ:
+
+Объект Room.
+
+Frontend должен использовать этот запрос:
+- после создания комнаты;
+- после подключения второго игрока;
+- после успешного игрового действия;
+- при периодическом обновлении состояния игры.
+
+Если в комнате ещё нет двух игроков, игровое состояние может отсутствовать.
+
+Поэтому интерфейс должен корректно обрабатывать ситуацию ожидания второго игрока.
+
+Необходимо сверить точное представление отсутствующего игрового состояния с реальным JSON-ответом Backend.
+
+## 10. Подключение второго игрока
+
+Метод: POST
+
+Маршрут:
+
+/api/rooms/{roomId}/join
+
+Тело запроса:
+
+{
+  "playerId": "player-2",
+  "playerName": "Player 2"
+}
+
+Поля:
+
+playerId — идентификатор подключающегося игрока.
+
+playerName — отображаемое имя игрока.
+
+Успешный ответ:
+
+Объект Room.
+
+После успешного подключения Frontend должен:
+1. Получить актуальные данные комнаты.
+2. Проверить состояние комнаты.
+3. Перейти к игровому интерфейсу, когда игра готова.
+4. Отобразить обоих игроков.
+
+## 11. Бросок кубика
+
+Метод: POST
+
+Маршрут:
+
+/api/rooms/{roomId}/game/roll
+
+Тело запроса:
+
+{
+  "playerId": "player-1"
+}
+
+Ответ:
+
+{
+  "result": 4
+}
+
+Поле result содержит результат броска.
+
+Число 4 в примере приведено только для демонстрации формата ответа.
+
+Frontend не должен генерировать результат броска самостоятельно.
+
+После успешного запроса необходимо обновить состояние комнаты.
+
+## 12. Перемещение робота
+
+Метод: POST
+
+Маршрут:
+
+/api/rooms/{roomId}/game/move-robot
+
+Тело запроса:
+
+{
+  "playerId": "player-1",
+  "robotId": "robot-1",
+  "path": [
+    {
+      "level": 1,
+      "position": 1
+    },
+    {
+      "level": 1,
+      "position": 2
+    }
+  ]
+}
+
+Поля:
+
+playerId — идентификатор игрока, выполняющего действие.
+
+robotId — идентификатор робота.
+
+path — последовательность позиций, по которым передаётся маршрут перемещения.
+
+Каждая позиция содержит:
+
+level — номер уровня.
+
+position — номер позиции на уровне.
+
+Нумерация игровых уровней и позиций начинается с 1.
+
+Пример:
+
+{
+  "level": 2,
+  "position": 7
+}
+
+После успешного перемещения необходимо повторно получить состояние комнаты.
+
+Frontend может визуально подсвечивать выбранный маршрут, но окончательную проверку допустимости перемещения выполняет Backend.
+
+## 13. Начало ремонта
+
+Метод: POST
+
+Маршрут:
+
+/api/rooms/{roomId}/game/repair
+
+Тело запроса:
+
+{
+  "playerId": "player-1",
+  "taskId": "repair-task-1",
+  "compartmentId": "L1-C1"
+}
+
+Поля:
+
+playerId — идентификатор игрока.
+
+taskId — идентификатор задачи ремонта.
+
+compartmentId — идентификатор ремонтируемого отсека.
+
+Пример идентификатора отсека:
+
+L1-C1
+
+После успешного выполнения запроса необходимо обновить состояние комнаты.
+
+## 14. Завершение хода
+
+Метод: POST
+
+Маршрут:
+
+/api/rooms/{roomId}/game/end-turn
+
+Тело запроса:
+
+{
+  "playerId": "player-1"
+}
+
+Ответ:
+
+{
+  "message": "ход завершен"
+}
+
+Frontend не должен самостоятельно переключать текущего игрока.
+
+После успешного завершения хода необходимо получить обновлённое состояние комнаты и определить текущего игрока по данным Backend.
+
+## 15. Запуск ракеты
+
+Внутренняя логика ракет присутствует в Backend.
+
+Однако точный HTTP-маршрут, формат запроса и формат ответа необходимо дополнительно подтвердить по актуальному файлу:
+
+internal/httpapi/handler.go
+
+До подтверждения маршрута Frontend не должен отправлять запрос на самостоятельно придуманный адрес.
+
+Внутреннее поле GunnerID в Go не означает автоматически, что HTTP-поле будет называться именно так. В ранее обсуждавшемся контракте использовалось имя gunnerId, но окончательное имя определяется JSON-тегом HTTP DTO.
+
+## 16. Данные игрового поля
+
+Основные характеристики:
+
+- 2 игрока в комнате.
+- 8 подземных уровней.
+- 21 отсек на каждом подземном уровне.
+- Поверхность — уровень 9.
+- У каждого игрока собственная станция.
+
+Формат ID отсека:
+
+L{level}-C{position}
+
+Примеры:
+
+L1-C1
+L1-C2
+L2-C7
+L8-C21
+
+Типы отсеков:
+
+- unknown
+- production
+- combat
+- energy
+- resource
+- rocket
+- command
+
+Ресурсы:
+
+- metal
+- uranium
+- oxygen
+- biomass
+- energy
+
+Визуальная раскладка поля должна соответствовать исходному изображению поля и правилам Septikon, а не произвольной сетке.
+
+## 17. Синхронизация Frontend и Backend
+
+На текущем этапе WebSocket не реализован.
+
+Поэтому временно используется периодическое получение состояния комнаты.
+
+Рекомендуемый порядок:
+
+1. После создания или подключения получить состояние комнаты.
+2. Во время игры периодически выполнять GET /api/rooms/{roomId}.
+3. После успешного игрового действия немедленно обновлять состояние.
+4. Не запускать новый polling-запрос, пока предыдущий ещё выполняется.
+5. Останавливать периодические запросы при выходе из игровой комнаты.
+
+Рекомендуемый начальный интервал:
+
+1–2 секунды.
+
+Этот интервал можно изменить после тестирования.
+
+## 18. Правила реализации API-клиента
+
+Рекомендуется создать отдельные файлы:
+
+src/api/client.ts
+src/api/rooms.ts
+src/api/game.ts
+
+client.ts:
+- хранит базовый адрес Backend;
+- выполняет HTTP-запросы;
+- устанавливает необходимые заголовки;
+- обрабатывает ошибки;
+- возвращает полученные данные.
+
+rooms.ts:
+- получение списка комнат;
+- создание комнаты;
+- получение комнаты;
+- подключение к комнате.
+
+game.ts:
+- бросок кубика;
+- перемещение робота;
+- начало ремонта;
+- завершение хода.
+
+## 19. Важные ограничения
+
+Не реализовывать на Frontend самостоятельно:
+
+- генерацию результата кубика;
+- проверку очередности ходов;
+- изменение количества ресурсов;
+- продвижение производства;
+- продвижение ремонта;
+- продвижение ракет;
+- проверку допустимости игровых действий.
+
+Frontend отвечает за интерфейс.
+
+Backend отвечает за правила.
+
+## 20. Что необходимо уточнить при дальнейшей интеграции
+
+- Точные JSON-теги всех структур Room и Game.
+- Полную структуру Player и Board.
+- Полную структуру Robot и Position.
+- Структуру задач производства и ремонта.
+- Структуру Rocket.
+- Точный маршрут запуска ракеты.
+- CORS для адреса Frontend.
+- Способ формирования и хранения playerId.
+
+При расхождении этого документа с актуальным Go-кодом приоритет имеет фактическая реализация Backend. Контракт необходимо обновить после согласования изменений.
