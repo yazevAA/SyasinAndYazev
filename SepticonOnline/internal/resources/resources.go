@@ -97,13 +97,16 @@ func (i *Inventory) Spend(resource ResourceType, amount int) error {
 }
 
 // Задача по добыче ресурсов
+// Задача по добыче ресурсов.
 type ProductionTask struct {
 	ID             string       `json:"id"`
+	CompartmentID  string       `json:"compartmentId"`
 	Resource       ResourceType `json:"resource"`
 	Amount         int          `json:"amount"`
 	RequiredTurns  int          `json:"requiredTurns"`
 	RemainingTurns int          `json:"remainingTurns"`
 	Completed      bool         `json:"completed"`
+	Collected      bool         `json:"collected"`
 }
 
 // Создание задачи добычи
@@ -151,18 +154,27 @@ func (t *ProductionTask) AdvanceTurn() error {
 }
 
 // Получение добытых ресурсов
+// Получение добытых ресурсов.
 func (t *ProductionTask) Collect(inventory *Inventory) error {
 	if !t.Completed {
 		return errors.New("добыча еще не завершена")
+	}
+
+	if t.Collected {
+		return errors.New("ресурсы уже получены")
+	}
+
+	if inventory == nil {
+		return errors.New("инвентарь не существует")
 	}
 
 	if err := inventory.Add(t.Resource, t.Amount); err != nil {
 		return err
 	}
 
-	// Не позволяем повторно получить одну и ту же награду
-	t.Completed = false
-	t.Amount = 0
+	// Отмечаем, что ресурсы уже получены.
+	// Completed остаётся true, Amount сохраняет исходное значение.
+	t.Collected = true
 
 	return nil
 }

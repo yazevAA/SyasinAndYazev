@@ -3,9 +3,11 @@ package room
 import (
 	"errors"
 	"fmt"
-	"septikon-online/internal/game"
-	"septikon-online/internal/robot"
 	"sync"
+
+	"septikon-online/internal/game"
+	"septikon-online/internal/resources"
+	"septikon-online/internal/robot"
 )
 
 var ErrRoomNotFound = errors.New("комната не найдена")
@@ -22,7 +24,7 @@ func NewManager() *Manager {
 	}
 }
 
-// Создание комнаты первым игроком
+// Создание комнаты первым игроком.
 func (m *Manager) CreateRoom(playerID, playerName string) (Room, error) {
 	if playerID == "" || playerName == "" {
 		return Room{}, errors.New("ID и имя игрока не могут быть пустыми")
@@ -50,7 +52,7 @@ func (m *Manager) CreateRoom(playerID, playerName string) (Room, error) {
 	return *newRoom, nil
 }
 
-// Подключение второго игрока
+// Подключение второго игрока.
 func (m *Manager) JoinRoom(roomID, playerID, playerName string) (Room, error) {
 	if playerID == "" || playerName == "" {
 		return Room{}, errors.New("ID и имя игрока не могут быть пустыми")
@@ -78,7 +80,7 @@ func (m *Manager) JoinRoom(roomID, playerID, playerName string) (Room, error) {
 
 	firstPlayer := currentRoom.Players[0]
 
-	// Создаём общую игровую партию
+	// Создаём общую игровую партию.
 	newGame, err := game.NewGame(
 		currentRoom.ID+"-game",
 		firstPlayer.ID,
@@ -86,7 +88,6 @@ func (m *Manager) JoinRoom(roomID, playerID, playerName string) (Room, error) {
 		playerID,
 		playerName,
 	)
-
 	if err != nil {
 		return Room{}, err
 	}
@@ -102,7 +103,7 @@ func (m *Manager) JoinRoom(roomID, playerID, playerName string) (Room, error) {
 	return *currentRoom, nil
 }
 
-// Получение информации о комнате
+// Получение информации о комнате.
 func (m *Manager) GetRoom(roomID string) (Room, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -115,6 +116,7 @@ func (m *Manager) GetRoom(roomID string) (Room, error) {
 	return *currentRoom, nil
 }
 
+// Получение списка ожидающих комнат.
 func (m *Manager) ListRooms() []Room {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -122,7 +124,6 @@ func (m *Manager) ListRooms() []Room {
 	result := make([]Room, 0, len(m.rooms))
 
 	for _, currentRoom := range m.rooms {
-		// Показываем только комнаты, ожидающие второго игрока.
 		if currentRoom.Status == RoomWaiting {
 			result = append(result, *currentRoom)
 		}
@@ -131,7 +132,7 @@ func (m *Manager) ListRooms() []Room {
 	return result
 }
 
-// Бросок кубика игроком
+// Бросок кубика игроком.
 func (m *Manager) RollDice(roomID, playerID string) (int, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -148,7 +149,7 @@ func (m *Manager) RollDice(roomID, playerID string) (int, error) {
 	return currentRoom.Game.RollDice(playerID)
 }
 
-// Завершение хода игроком
+// Завершение хода игроком.
 func (m *Manager) EndTurn(roomID, playerID string) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -165,7 +166,7 @@ func (m *Manager) EndTurn(roomID, playerID string) error {
 	return currentRoom.Game.EndTurn(playerID)
 }
 
-// Перемещение робота
+// Перемещение робота.
 func (m *Manager) MoveRobot(
 	roomID string,
 	playerID string,
@@ -187,7 +188,7 @@ func (m *Manager) MoveRobot(
 	return currentRoom.Game.MoveRobot(playerID, robotID, path)
 }
 
-// Начало ремонта отсека
+// Начало ремонта отсека.
 func (m *Manager) StartRepair(
 	roomID string,
 	playerID string,
@@ -207,4 +208,92 @@ func (m *Manager) StartRepair(
 	}
 
 	return currentRoom.Game.StartRepair(playerID, taskID, compartmentID)
+}
+
+// Запуск ракеты игроком.
+func (m *Manager) LaunchRocket(
+	roomID string,
+	playerID string,
+	rocketID string,
+	gunnerID string,
+	targetStation string,
+	distance int,
+	speed int,
+) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	currentRoom, exists := m.rooms[roomID]
+	if !exists {
+		return ErrRoomNotFound
+	}
+
+	if currentRoom.Status != RoomPlaying || currentRoom.Game == nil {
+		return errors.New("партия еще не началась")
+	}
+
+	return currentRoom.Game.LaunchRocket(
+		playerID,
+		rocketID,
+		gunnerID,
+		targetStation,
+		distance,
+		speed,
+	)
+}
+
+// Запуск производства ресурсов.
+func (m *Manager) StartProduction(
+	roomID string,
+	playerID string,
+	taskID string,
+	compartmentID string,
+	resource resources.ResourceType,
+	amount int,
+	requiredTurns int,
+) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	currentRoom, exists := m.rooms[roomID]
+	if !exists {
+		return ErrRoomNotFound
+	}
+
+	if currentRoom.Status != RoomPlaying || currentRoom.Game == nil {
+		return errors.New("партия еще не началась")
+	}
+
+	return currentRoom.Game.StartProduction(
+		playerID,
+		taskID,
+		compartmentID,
+		resource,
+		amount,
+		requiredTurns,
+	)
+}
+
+// Получение произведённых ресурсов.
+func (m *Manager) CollectProduction(
+	roomID string,
+	playerID string,
+	taskID string,
+) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	currentRoom, exists := m.rooms[roomID]
+	if !exists {
+		return ErrRoomNotFound
+	}
+
+	if currentRoom.Status != RoomPlaying || currentRoom.Game == nil {
+		return errors.New("партия еще не началась")
+	}
+
+	return currentRoom.Game.CollectProduction(
+		playerID,
+		taskID,
+	)
 }

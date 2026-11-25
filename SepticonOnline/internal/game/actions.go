@@ -3,6 +3,7 @@ package game
 import (
 	"errors"
 
+	"septikon-online/internal/board"
 	"septikon-online/internal/resources"
 	"septikon-online/internal/robot"
 	"septikon-online/internal/rocket"
@@ -33,9 +34,20 @@ func (g *Game) AddRobot(
 		return errors.New("ID робота не может быть пустым")
 	}
 
-	if level < 1 || level > 8 ||
-		position < 1 || position > 21 {
-		return errors.New("некорректная позиция робота")
+	// Проверяем допустимость положения робота.
+	if level < 1 || level > board.LevelCount {
+		return errors.New("недопустимый уровень")
+	}
+
+	// На подземных уровнях доступно 21 позиция.
+	// На поверхности пока используем ту же систему колонок.
+	if position < 1 || position > board.CompartmentsPerLevel {
+		return errors.New("недопустимая позиция робота")
+	}
+
+	// Проверяем наличие поверхности.
+	if level == board.LevelCount && !p.Station.Surface.Present {
+		return errors.New("поверхность станции недоступна")
 	}
 
 	for _, existing := range p.Robots {
@@ -49,6 +61,35 @@ func (g *Game) AddRobot(
 	)
 
 	return nil
+}
+
+// FindGunner находит активного робота игрока на поверхности станции.
+func (g *Game) FindGunner(
+	playerID string,
+	robotID string,
+) (*robot.Robot, error) {
+	player, err := g.FindPlayer(playerID)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range player.Robots {
+		r := &player.Robots[i]
+
+		if r.ID == robotID {
+			if !r.Active {
+				return nil, errors.New("робот неактивен")
+			}
+
+			if r.Position.Level != 9 {
+				return nil, errors.New("робот не находится на поверхности")
+			}
+
+			return r, nil
+		}
+	}
+
+	return nil, errors.New("робот не найден")
 }
 
 // Перемещение робота
@@ -91,9 +132,11 @@ func (g *Game) MoveRobot(
 }
 
 // Запуск производства ресурсов
+// Запуск производства ресурсов в указанном отсеке.
 func (g *Game) StartProduction(
 	playerID string,
 	taskID string,
+	compartmentID string,
 	resource resources.ResourceType,
 	amount int,
 	requiredTurns int,
@@ -119,6 +162,27 @@ func (g *Game) StartProduction(
 		return errors.New("ID задачи не может быть пустым")
 	}
 
+	if compartmentID == "" {
+		return errors.New("ID производственного отсека не может быть пустым")
+	}
+
+	// Проверяем, существует ли отсек на станции игрока.
+	compartment, err := p.Station.FindCompartment(compartmentID)
+	if err != nil {
+		return err
+	}
+
+	// Производство разрешено только в производственном отсеке.
+	if compartment.Type != board.CompartmentProduction {
+		return errors.New("отсек не предназначен для производства")
+	}
+
+	// Повреждённый отсек использовать нельзя.
+	if compartment.Damaged {
+		return errors.New("производственный отсек повреждён")
+	}
+
+	// Проверяем уникальность задачи.
 	for _, task := range p.ProductionTasks {
 		if task.ID == taskID {
 			return errors.New("задача с таким ID уже существует")
@@ -131,10 +195,11 @@ func (g *Game) StartProduction(
 		amount,
 		requiredTurns,
 	)
-
 	if err != nil {
 		return err
 	}
+
+	task.CompartmentID = compartmentID
 
 	p.ProductionTasks = append(p.ProductionTasks, task)
 
@@ -182,6 +247,7 @@ func (g *Game) CollectProduction(
 func (g *Game) LaunchRocket(
 	playerID string,
 	rocketID string,
+	gunnerID string,
 	targetStation string,
 	distance int,
 	speed int,
@@ -206,6 +272,11 @@ func (g *Game) LaunchRocket(
 		if existing.ID == rocketID {
 			return errors.New("ракета с таким ID уже существует")
 		}
+	}
+
+	// Проверяем наличие активного робота-стрелка на поверхности.
+	if _, err := g.FindGunner(playerID, gunnerID); err != nil {
+		return err
 	}
 
 	targetPlayer, err := g.FindPlayer(targetStation)

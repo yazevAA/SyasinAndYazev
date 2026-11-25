@@ -64,8 +64,18 @@ func (r *Robot) Move(path []Position, diceResult int) error {
 		return errors.New("недостаточно клеток для перемещения")
 	}
 
-	// Перемещаем робота
-	r.Position = path[newIndex]
+	// Проверяем допустимость конечной позиции.
+	nextPosition := path[newIndex]
 
+	if nextPosition.Level < 1 || nextPosition.Level > 9 {
+		return errors.New("некорректный уровень назначения")
+	}
+
+	if nextPosition.Position < 1 || nextPosition.Position > 21 {
+		return errors.New("некорректная позиция назначения")
+	}
+
+	// Перемещаем робота.
+	r.Position = nextPosition
 	return nil
 }

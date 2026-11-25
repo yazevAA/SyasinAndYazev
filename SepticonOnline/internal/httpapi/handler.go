@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
+
+	"septikon-online/internal/resources"
 	"septikon-online/internal/robot"
 	"septikon-online/internal/room"
-	"strings"
 )
 
 type Handler struct {
@@ -175,11 +177,19 @@ func (h *Handler) handleJoinRoom(w http.ResponseWriter, r *http.Request, roomID 
 }
 
 type GameActionRequest struct {
-	PlayerID      string           `json:"playerId"`
-	RobotID       string           `json:"robotId"`
-	Path          []robot.Position `json:"path"`
-	TaskID        string           `json:"taskId"`
-	CompartmentID string           `json:"compartmentId"`
+	PlayerID      string                 `json:"playerId"`
+	RobotID       string                 `json:"robotId"`
+	GunnerID      string                 `json:"gunnerId"`
+	Path          []robot.Position       `json:"path"`
+	TaskID        string                 `json:"taskId"`
+	CompartmentID string                 `json:"compartmentId"`
+	RocketID      string                 `json:"rocketId"`
+	TargetStation string                 `json:"targetStation"`
+	Distance      int                    `json:"distance"`
+	Speed         int                    `json:"speed"`
+	Resource      resources.ResourceType `json:"resource"`
+	Amount        int                    `json:"amount"`
+	RequiredTurns int                    `json:"requiredTurns"`
 }
 
 type DiceResponse struct {
@@ -241,8 +251,31 @@ func (h *Handler) handleGameAction(
 			"message": "ход завершен",
 		})
 
-	default:
-		http.NotFound(w, r)
+	case "launch-rocket":
+		err := h.rooms.LaunchRocket(
+			roomID,
+			request.PlayerID,
+			request.RocketID,
+			request.GunnerID,
+			request.TargetStation,
+			request.Distance,
+			request.Speed,
+		)
+
+		if err != nil {
+			status := http.StatusBadRequest
+
+			if errors.Is(err, room.ErrRoomNotFound) {
+				status = http.StatusNotFound
+			}
+
+			writeError(w, status, err.Error())
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]string{
+			"message": "ракета запущена",
+		})
 
 	case "move-robot":
 		err := h.rooms.MoveRobot(
@@ -289,5 +322,56 @@ func (h *Handler) handleGameAction(
 		writeJSON(w, http.StatusOK, map[string]string{
 			"message": "ремонт начат",
 		})
+
+	case "start-production":
+		err := h.rooms.StartProduction(
+			roomID,
+			request.PlayerID,
+			request.TaskID,
+			request.CompartmentID,
+			request.Resource,
+			request.Amount,
+			request.RequiredTurns,
+		)
+
+		if err != nil {
+			status := http.StatusBadRequest
+
+			if errors.Is(err, room.ErrRoomNotFound) {
+				status = http.StatusNotFound
+			}
+
+			writeError(w, status, err.Error())
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]string{
+			"message": "производство начато",
+		})
+
+	case "collect-production":
+		err := h.rooms.CollectProduction(
+			roomID,
+			request.PlayerID,
+			request.TaskID,
+		)
+
+		if err != nil {
+			status := http.StatusBadRequest
+
+			if errors.Is(err, room.ErrRoomNotFound) {
+				status = http.StatusNotFound
+			}
+
+			writeError(w, status, err.Error())
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]string{
+			"message": "ресурсы получены",
+		})
+
+	default:
+		http.NotFound(w, r)
 	}
 }

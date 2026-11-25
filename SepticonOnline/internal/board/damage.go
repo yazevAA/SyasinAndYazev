@@ -1,8 +1,6 @@
 package board
 
-import "errors"
-
-// Поиск отсека по идентификатору
+// Поиск отсека по идентификатору.
 func (b *Board) FindCompartment(id string) (*Compartment, error) {
 	for i := range b.Levels {
 		for j := range b.Levels[i].Compartments {
@@ -14,31 +12,27 @@ func (b *Board) FindCompartment(id string) (*Compartment, error) {
 		}
 	}
 
-	return nil, errors.New("отсек не найден")
+	return nil, ErrCompartmentNotFound
 }
 
-// Повреждение отсека
+// Повреждение отсека.
 func (b *Board) DamageCompartment(id string) error {
 	compartment, err := b.FindCompartment(id)
-
 	if err != nil {
 		return err
 	}
 
 	compartment.Damaged = true
-
 	return nil
 }
 
-// Восстановление отсека
+// Восстановление отсека.
 func (b *Board) RepairCompartment(id string) error {
 	compartment, err := b.FindCompartment(id)
-
 	if err != nil {
 		return err
 	}
 
 	compartment.Damaged = false
-
 	return nil
 }
